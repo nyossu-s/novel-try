@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ミニノベルゲーム</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #111827;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .game {
+      width: min(960px, 100%);
+      aspect-ratio: 16 / 9;
+      min-height: 520px;
+      border-radius: 24px;
+      overflow: hidden;
+      position: relative;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 45%, #334155 100%);
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+    }
+
+    .background-label {
+      position: absolute;
+      top: 20px;
+      left: 24px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.55);
+      backdrop-filter: blur(10px);
+      font-size: 14px;
+      color: #cbd5e1;
+    }
+
+    .title-screen {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 18px;
+      padding: 32px;
+      background:
+        radial-gradient(circle at 50% 20%, rgba(96, 165, 250, 0.35), transparent 35%),
+        linear-gradient(135deg, #020617, #1e293b 60%, #0f172a);
+      z-index: 5;
+    }
+
+    .title-screen.hidden {
+      display: none;
+    }
+
+    h1 {
+      font-size: clamp(34px, 6vw, 72px);
+      margin: 0;
+      letter-spacing: 0.05em;
+    }
+
+    .subtitle {
+      color: #cbd5e1;
+      margin-bottom: 18px;
+    }
+
+    button {
+      appearance: none;
+      border: 0;
+      cursor: pointer;
+      border-radius: 999px;
+      padding: 13px 24px;
+      font-size: 16px;
+      font-weight: 700;
+      color: #0f172a;
+      background: #f8fafc;
+      transition: transform 0.15s ease, background 0.15s ease;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      background: #dbeafe;
+    }
+
+    .character {
+      position: absolute;
+      bottom: 150px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 240px;
+      height: 320px;
+      border-radius: 120px 120px 32px 32px;
+      background: linear-gradient(180deg, #fbbf24, #f97316);
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 80px;
+      user-select: none;
+    }
+
+    .character::after {
+      content: "仮キャラ";
+      position: absolute;
+      bottom: -34px;
+      font-size: 14px;
+      color: #e2e8f0;
+      background: rgba(15, 23, 42, 0.7);
+      padding: 6px 12px;
+      border-radius: 999px;
+    }
+
+    .textbox {
+      position: absolute;
+      left: 24px;
+      right: 24px;
+      bottom: 24px;
+      min-height: 140px;
+      border-radius: 22px;
+      background: rgba(15, 23, 42, 0.82);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(12px);
+      padding: 20px 22px;
+    }
+
+    .name {
+      display: inline-block;
+      min-width: 100px;
+      padding: 7px 14px;
+      border-radius: 999px;
+      background: #38bdf8;
+      color: #082f49;
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+
+    .text {
+      font-size: clamp(17px, 2.2vw, 24px);
+      line-height: 1.75;
+      min-height: 52px;
+    }
+
+    .hint {
+      position: absolute;
+      right: 22px;
+      bottom: 14px;
+      color: #94a3b8;
+      font-size: 13px;
+    }
+
+    .choices {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .choices.active {
+      display: flex;
+    }
+
+    .choice-btn {
+      width: 100%;
+      border-radius: 14px;
+      text-align: left;
+      background: #e0f2fe;
+    }
+
+    .ending {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 30px;
+      background: rgba(2, 6, 23, 0.88);
+      z-index: 4;
+    }
+
+    .ending.active {
+      display: flex;
+    }
+
+    .ending-card {
+      max-width: 620px;
+      padding: 34px;
+      border-radius: 28px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .ending h2 {
+      font-size: 42px;
+      margin: 0 0 12px;
+    }
+
+    .ending p {
+      color: #cbd5e1;
+      line-height: 1.8;
+      margin-bottom: 24px;
+    }
+  </style>
+</head>
+<body>
+  <main class="game">
+    <div class="background-label" id="place">夕方の帰り道</div>
+
+    <section class="title-screen" id="titleScreen">
+      <h1>放課後の分岐点</h1>
+      <div class="subtitle">選択肢で結末が変わる、ミニノベルゲーム</div>
+      <button onclick="startGame()">はじめる</button>
+    </section>
+
+    <div class="character" id="character">🙂</div>
+
+    <section class="textbox">
+      <div class="name" id="speaker">？？？</div>
+      <div class="text" id="text">クリックで進みます。</div>
+      <div class="choices" id="choices"></div>
+      <div class="hint" id="hint">画面クリックで次へ</div>
+    </section>
+
+    <section class="ending" id="ending">
+      <div class="ending-card">
+        <h2 id="endingTitle"></h2>
+        <p id="endingText"></p>
+        <button onclick="resetGame()">もう一度</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const scenes = [
+      {
+        speaker: "ユウ",
+        face: "🙂",
+        place: "夕方の帰り道",
+        text: "……なあ、今日このあと少しだけ時間ある？"
+      },
+      {
+        speaker: "主人公",
+        face: "😐",
+        place: "夕方の帰り道",
+        text: "時間はあるけど、急にどうしたんだ？"
+      },
+      {
+        speaker: "ユウ",
+        face: "😶",
+        place: "夕方の帰り道",
+        text: "いや、ちょっと話したいことがあって。できれば、人が少ない場所で。"
+      },
+      {
+        speaker: "主人公",
+        face: "🤔",
+        place: "校門前",
+        text: "ユウの表情はいつもより真剣だった。どう返す？",
+        choices: [
+          { text: "ちゃんと話を聞く", ending: "good" },
+          { text: "今日は忙しいと断る", ending: "bad" },
+          { text: "冗談っぽく茶化す", ending: "normal" }
+        ]
+      }
+    ];
+
+    const endings = {
+      good: {
+        title: "GOOD END",
+        text: "あなたはユウの話を最後まで聞いた。ほんの少しだけ、二人の距離が近づいた気がした。"
+      },
+      normal: {
+        title: "NORMAL END",
+        text: "ユウは少し笑ったけれど、結局その話は別の日に持ち越しになった。"
+      },
+      bad: {
+        title: "BAD END",
+        text: "その日を境に、ユウは大事な話をしなくなった。何を言おうとしていたのかは、分からないままだ。"
+      }
+    };
+
+    let index = 0;
+    let started = false;
+
+    const titleScreen = document.getElementById("titleScreen");
+    const speaker = document.getElementById("speaker");
+    const text = document.getElementById("text");
+    const choices = document.getElementById("choices");
+    const hint = document.getElementById("hint");
+    const character = document.getElementById("character");
+    const place = document.getElementById("place");
+    const ending = document.getElementById("ending");
+    const endingTitle = document.getElementById("endingTitle");
+    const endingText = document.getElementById("endingText");
+
+    function startGame() {
+      started = true;
+      titleScreen.classList.add("hidden");
+      index = 0;
+      showScene();
+    }
+
+    function showScene() {
+      const scene = scenes[index];
+      speaker.textContent = scene.speaker;
+      text.textContent = scene.text;
+      character.textContent = scene.face;
+      place.textContent = scene.place;
+      choices.innerHTML = "";
+      choices.classList.remove("active");
+      hint.style.display = scene.choices ? "none" : "block";
+
+      if (scene.choices) {
+        choices.classList.add("active");
+        scene.choices.forEach(choice => {
+          const button = document.createElement("button");
+          button.className = "choice-btn";
+          button.textContent = choice.text;
+          button.onclick = (event) => {
+            event.stopPropagation();
+            showEnding(choice.ending);
+          };
+          choices.appendChild(button);
+        });
+      }
+    }
+
+    function nextScene() {
+      if (!started) return;
+      if (scenes[index].choices) return;
+      index++;
+      if (index < scenes.length) {
+        showScene();
+      }
+    }
+
+    function showEnding(type) {
+      endingTitle.textContent = endings[type].title;
+      endingText.textContent = endings[type].text;
+      ending.classList.add("active");
+    }
+
+    function resetGame() {
+      ending.classList.remove("active");
+      titleScreen.classList.remove("hidden");
+      started = false;
+      index = 0;
+      speaker.textContent = "？？？";
+      text.textContent = "クリックで進みます。";
+      character.textContent = "🙂";
+      place.textContent = "夕方の帰り道";
+      choices.innerHTML = "";
+      choices.classList.remove("active");
+      hint.style.display = "block";
+    }
+
+    document.querySelector(".game").addEventListener("click", nextScene);
+  </script>
+</body>
+</html>
